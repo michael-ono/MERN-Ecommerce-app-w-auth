@@ -1,22 +1,32 @@
-import { Router, Request, Response } from "express";
-import { UserModel } from "../models/user";
-import { UserErrors } from "../errors"
+import express from "express";
 import bcrypt from "bcrypt";
 
-const router = Router();
+const router = express.Router();
 
-router.post("/register", async (req: Request, res: Response) => {
+import { UserModel } from "../models/user";
+import { UserErrors } from "../errors"
+
+
+router.post("/register", async (req, res) => {
     const { username, password } = req.body; 
 
-    const user = await UserModel.findOne({username});
+    try {
+        const user = await UserModel.findOne({username});
 
-    if (user) {
-        return res.status(400).json({type: UserErrors.USERNME_ALREDY_EXISTS});
+        if (user) {
+            return res.status(400).json({type: UserErrors.USERNAME_ALREDY_EXISTS});
+        }
+    
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const newUser = new UserModel({ username, password: hashedPassword });
+        await newUser.save();
+    
+        res.json({ message: "User Registered Successfully" });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const newUser = new UserModel({ username, psssword: hashedPassword })
-
+    catch (err) {
+      res.status(500).json({ type: err })
+    }
 });
 
 export { router as userRouter };
